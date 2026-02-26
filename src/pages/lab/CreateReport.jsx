@@ -20,12 +20,28 @@ export default function CreateReport() {
 
   const [error, setError] = useState("");
 
-  // Fetch batch info
+  // ✅ Fetch batch info (FIXED HERE)
   useEffect(() => {
-    api.get(`/api/batches/${batchId}`)
-      .then(res => setBatch(res.data))
-      .catch(() => setError("Failed to load batch details"))
-      .finally(() => setLoading(false));
+    async function fetchBatch() {
+      try {
+        const res = await api.get(`/api/batch/${batchId}`);
+        const data = res.data;
+
+        // 🔥 Normalize backend response
+        setBatch({
+          batch_code: data.batch.code,
+          manufacturing_location: data.batch.location,
+          expiry_date: data.batch.expiry,
+          product: data.product
+        });
+      } catch (err) {
+        setError("Failed to load batch details");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchBatch();
   }, [batchId]);
 
   function handleChange(e) {
@@ -102,7 +118,8 @@ export default function CreateReport() {
           <div>
             <p className="text-gray-500">Expiry Date</p>
             <p>
-              {new Date(batch.expiry_date).toLocaleDateString()}
+              {batch.expiry_date &&
+                new Date(batch.expiry_date).toLocaleDateString()}
             </p>
           </div>
         </div>
