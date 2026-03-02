@@ -13,7 +13,7 @@ export default function CreateBatch() {
     expiry_date: "",
     manufacturing_location: "",
     base_carbon_footprint: "",
-    material: [{ name: "", percentage: "", source: "" }]
+    materials: [{ name: "", percentage: "", source: "" }]
   });
 
   const [loading, setLoading] = useState(false);
@@ -38,28 +38,28 @@ export default function CreateBatch() {
   const addMaterial = () => {
     setForm(prev => ({
       ...prev,
-      material: [
-        ...prev.material,
+      materials: [
+        ...prev.materials,
         { name: "", percentage: "", source: "" }
       ]
     }));
   };
 
   const updateMaterial = (index, field, value) => {
-    const updated = [...form.material];
+    const updated = [...form.materials];
     updated[index][field] = value;
 
     setForm(prev => ({
       ...prev,
-      material: updated
+      materials: updated
     }));
   };
 
   const removeMaterial = (index) => {
-    const updated = form.material.filter((_, i) => i !== index);
+    const updated = form.materials.filter((_, i) => i !== index);
     setForm(prev => ({
       ...prev,
-      material: updated
+      materials: updated
     }));
   };
 
@@ -78,7 +78,7 @@ export default function CreateBatch() {
     if (isNaN(carbon) || carbon < 0)
       return "Base carbon footprint must be a positive number.";
 
-    for (let mat of form.material) {
+    for (let mat of form.materials) {
       if (!mat.name.trim()) return "Material name is required.";
       if (Number(mat.percentage) < 0 || Number(mat.percentage) > 100)
         return "Material percentage must be between 0 and 100.";
@@ -110,7 +110,7 @@ export default function CreateBatch() {
         expiry_date: new Date(form.expiry_date).toISOString(),
         manufacturing_location: form.manufacturing_location,
         base_carbon_footprint: Number(form.base_carbon_footprint),
-        material: form.material.map(m => ({
+        materials: form.materials.map(m => ({
           name: m.name,
           percentage: Number(m.percentage),
           source: m.source
@@ -237,7 +237,7 @@ export default function CreateBatch() {
                   </label>
 
                   <div className="space-y-4">
-                    {form.material.map((mat, index) => (
+                    {form.materials.map((mat, index) => (
                       <div
                         key={index}
                         className="border rounded-xl p-4 bg-gray-50"
@@ -278,7 +278,7 @@ export default function CreateBatch() {
                           </div>
 
                           <div className="lg:col-span-1 flex items-end justify-end">
-                            {form.material.length > 1 && (
+                            {form.materials.length > 1 && (
                               <button
                                 type="button"
                                 onClick={() => removeMaterial(index)}
@@ -307,15 +307,7 @@ export default function CreateBatch() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="
-                      w-full sm:w-auto
-                      px-8 py-3
-                      bg-green-600 text-white
-                      rounded-xl
-                      hover:bg-green-700
-                      transition
-                      disabled:opacity-60
-                    "
+                    className="w-full sm:w-auto px-8 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition disabled:opacity-60"
                   >
                     {loading ? "Creating..." : "Create Batch"}
                   </button>
@@ -380,12 +372,7 @@ function Input({ label, ...props }) {
       </label>
       <input
         {...props}
-        className="
-          w-full px-4 py-2
-          rounded-xl border border-gray-300
-          focus:outline-none focus:ring-2 focus:ring-green-500
-          text-sm
-        "
+        className="w-full px-4 py-2 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
       />
     </div>
   );

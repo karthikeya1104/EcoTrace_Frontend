@@ -31,7 +31,8 @@ export default function PublicBatch() {
 
   if (loading) return <CenterMsg text="Loading product verification..." />;
   if (error) return <CenterMsg text={error} error />;
-  if (!data) return null;
+  if (!data?.product || !data?.batch)
+    return <CenterMsg text="Incomplete batch data received." error />;
 
   const lab = data.lab_reports?.[0] || null;
   const aiScore = data.ai_score?.rating;
@@ -40,64 +41,57 @@ export default function PublicBatch() {
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-6xl mx-auto space-y-8">
 
-        {/* ================= HERO ================= */}
+        {/* HERO */}
         <div className="bg-white rounded-3xl shadow-xl p-8">
-
           <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-8">
 
-            {/* LEFT SIDE */}
             <div>
               <h1 className="text-3xl font-bold text-gray-900">
                 {data.product.name}
               </h1>
+
               <p className="text-gray-500 text-lg">
                 {data.product.brand} • {data.product.category}
               </p>
 
-              <div className="mt-3 flex gap-3 flex-wrap">
+              {data.product.description && (
+                <p className="mt-4 text-gray-600 whitespace-pre-line">
+                  {data.product.description}
+                </p>
+              )}
+
+              <div className="mt-4 flex gap-3 flex-wrap">
                 <StatusBadge status={data.batch.status} />
                 {lab && <SafetyBadge status={lab.safety_status} />}
               </div>
             </div>
 
-            {/* RIGHT SIDE SCORES */}
             <div className="flex items-center gap-10 flex-wrap">
-
-              {/* LAB SCORE (PRIMARY) */}
-              <ScoreCircle
-                label="Lab Score"
-                score={lab?.lab_score}
-                scale="5"
-              />
-
-              {/* AI SCORE (SECONDARY) */}
-              <ScoreCircle
-                label="AI Score"
-                score={aiScore}
-                scale="100"
-                small
-              />
-
+              <ScoreCircle label="Lab Score" score={lab?.lab_score} scale="5" />
+              <ScoreCircle label="AI Score" score={aiScore} scale="100" small />
             </div>
           </div>
 
-          {/* ACTIONS (INLINE, NO FLOATING) */}
-          {role && (
-            <div className="mt-6 flex gap-4 flex-wrap">
-              <ActionButtons
-                role={role}
-                batchId={id}
-                navigate={navigate}
-              />
+          {/* AI Reasoning */}
+          {data.ai_score?.reasoning && (
+            <div className="mt-6 bg-green-50 p-4 rounded-xl text-sm text-green-800">
+              <strong>AI Insight:</strong>
+              <p className="mt-1">{data.ai_score.reasoning}</p>
+              <p className="text-xs text-gray-500 mt-2">
+                Generated: {formatDate(data.ai_score.generated_at)}
+              </p>
             </div>
           )}
 
+          {role && (
+            <div className="mt-6 flex gap-4 flex-wrap">
+              <ActionButtons role={role} batchId={id} navigate={navigate} />
+            </div>
+          )}
         </div>
 
-        {/* ================= TABS ================= */}
-
+        {/* TABS */}
         <div className="bg-white rounded-3xl shadow-xl">
-
           <div className="flex border-b overflow-x-auto">
             {[
               { id: "overview", label: "Overview" },
@@ -120,27 +114,66 @@ export default function PublicBatch() {
           </div>
 
           <div className="p-8">
-            {activeTab === "overview" && (
-              <Overview data={data} />
-            )}
+            {activeTab === "overview" && <Overview data={data} />}
             {activeTab === "materials" && (
               <Materials materials={data.materials} />
             )}
             {activeTab === "lab" && (
-              <LabReport lab={lab} />
+              <LabReport
+                lab={lab}
+                validation={data.batch.validation_status}
+              />
             )}
             {activeTab === "transport" && (
               <Transport transports={data.transports} />
             )}
           </div>
         </div>
-
       </div>
     </div>
   );
 }
 
-/* ================= SCORE COMPONENT ================= */
+/* ================= ACTION BUTTONS ================= */
+
+function ActionButtons({ role, batchId, navigate }) {
+  if (role === "transporter") {
+    return (
+      <button
+        onClick={() => navigate(`/transporter/create?batch=${batchId}`)}
+        className="px-6 py-2 rounded-xl bg-blue-600 text-white"
+      >
+        Update Transport
+      </button>
+    );
+  }
+
+  if (role === "lab") {
+    return (
+      <button
+        onClick={() => navigate(`/lab/create-report/${batchId}`)}
+        className="px-6 py-2 rounded-xl bg-purple-600 text-white"
+      >
+        Upload Lab Report
+      </button>
+    );
+  }
+
+  if (role === "consumer") {
+    return (
+      <button
+        onClick={() => navigate(`/consumer/rate/${batchId}`)}
+        className="px-6 py-2 rounded-xl bg-green-600 text-white"
+      >
+        Give Rating
+      </button>
+    );
+  }
+
+  return null;
+}
+
+/* ================= SCORE CIRCLE ================= */
 
 function ScoreCircle({ label, score, scale, small }) {
   if (score === undefined || score === null) return null;
@@ -148,11 +181,10 @@ function ScoreCircle({ label, score, scale, small }) {
   const max = scale === "5" ? 5 : 100;
   const percentage = (score / max) * 100;
 
-  // Color logic
-  let color = "#16a34a"; // green
+  let color = "#16a34a";
   if (scale === "5") {
-    if (score < 2) color = "#dc2626"; // red
-    else if (score < 4) color = "#ca8a04"; // yellow
+    if (score < 2) color = "#dc2626";
+    else if (score < 4) color = "#ca8a04";
   }
 
   const size = small ? 90 : 130;
@@ -168,115 +200,39 @@ function ScoreCircle({ label, score, scale, small }) {
           background: `conic-gradient(${color} ${percentage}%, #e5e7eb ${percentage}%)`
         }}
       >
-        {/* Inner Circle */}
         <div
           className="absolute bg-white rounded-full flex items-center justify-center"
-          style={{
-            width: size - 18,
-            height: size - 18
-          }}
+          style={{ width: size - 18, height: size - 18 }}
         >
           <span className={`font-bold ${fontSize}`}>
             {scale === "5" ? score.toFixed(1) : Math.round(score)}
           </span>
         </div>
       </div>
-
-      <p className="text-sm text-gray-500 mt-3">
-        {label}
-      </p>
+      <p className="text-sm text-gray-500 mt-3">{label}</p>
     </div>
   );
 }
 
-/* ================= ACTION BUTTONS ================= */
-
-function ActionButtons({ role, batchId, navigate }) {
-  if (role === "transporter") {
-    return (
-      <button
-        onClick={() =>
-          navigate(`/transporter/create?batch=${batchId}`)
-        }
-        className="px-6 py-2 rounded-xl bg-blue-600 text-white"
-      >
-        Update Transport
-      </button>
-    );
-  }
-
-  if (role === "lab") {
-    return (
-      <button
-        onClick={() =>
-          navigate(`/lab/create-report/${batchId}`)
-        }
-        className="px-6 py-2 rounded-xl bg-purple-600 text-white"
-      >
-        Upload Lab Report
-      </button>
-    );
-  }
-
-  if (role === "consumer") {
-    return (
-      <button
-        onClick={() =>
-          navigate(`/consumer/rate/${batchId}`)
-        }
-        className="px-6 py-2 rounded-xl bg-green-600 text-white"
-      >
-        Give Rating
-      </button>
-    );
-  }
-
-  return null;
-}
-
-/* ================= BADGES ================= */
-
-function StatusBadge({ status }) {
-  const color =
-    status === "approved"
-      ? "bg-green-100 text-green-700"
-      : "bg-yellow-100 text-yellow-700";
-
-  return (
-    <span className={`px-4 py-1 rounded-full text-sm font-medium ${color}`}>
-      {status.toUpperCase()}
-    </span>
-  );
-}
-
-function SafetyBadge({ status }) {
-  const safe = status === "safe";
-  return (
-    <span className={`px-4 py-1 rounded-full text-sm font-medium ${
-      safe ? "bg-green-100 text-green-700"
-           : "bg-red-100 text-red-700"
-    }`}>
-      {safe ? "SAFE ✔" : "RISK"}
-    </span>
-  );
-}
-
-/* ================= TAB CONTENT ================= */
+/* ================= OVERVIEW ================= */
 
 function Overview({ data }) {
   return (
     <div className="grid md:grid-cols-2 gap-6">
-      <Fact label="Manufactured"
-        value={formatDate(data.batch.manufacture_date)} />
-      <Fact label="Expiry"
-        value={formatDate(data.batch.expiry_date)} />
-      <Fact label="Location"
-        value={data.batch.manufacturing_location} />
-      <Fact label="Carbon Footprint"
-        value={`${data.batch.base_carbon_footprint} kg CO₂ per product`} />
+      <Fact label="Manufactured" value={formatDate(data.batch.manufacture_date)} />
+      <Fact label="Expiry" value={formatDate(data.batch.expiry_date)} />
+      <Fact label="Location" value={data.batch.manufacturing_location} />
+      <Fact
+        label="Carbon Footprint"
+        value={`${data.batch.base_carbon_footprint} kg CO₂ per product`}
+      />
+      <Fact label="Validation Status" value={data.batch.validation_status} />
+      <Fact label="Created At" value={formatDate(data.batch.created_at)} />
     </div>
   );
 }
+
+/* ================= MATERIALS ================= */
 
 function Materials({ materials }) {
   if (!materials?.length)
@@ -285,42 +241,52 @@ function Materials({ materials }) {
   return (
     <div className="space-y-6">
       {materials.map(m => (
-        <div key={m.material_id}
-          className="bg-gray-50 p-5 rounded-xl">
+        <div key={m.material_id} className="bg-gray-50 p-5 rounded-xl">
           <div className="flex justify-between">
             <h3 className="font-semibold">{m.name}</h3>
             <span>{m.percentage}%</span>
           </div>
+
           <div className="w-full bg-gray-200 h-2 rounded mt-2">
             <div
               className="bg-green-500 h-2 rounded"
               style={{ width: `${m.percentage}%` }}
             />
           </div>
-          <p className="text-sm text-gray-600 mt-2">
-            Source: {m.source || "Not Provided"}
-          </p>
+
+          <div className="mt-3 text-sm text-gray-600 space-y-1">
+            {m.common_name && <p>Common Name: {m.common_name}</p>}
+            {m.description && <p>{m.description}</p>}
+            {m.risk_level && (
+              <p>Risk Level: {m.risk_level.toUpperCase()}</p>
+            )}
+            <p>
+              Source: {m.source_info_provided ? m.source : "Not Provided"}
+            </p>
+          </div>
         </div>
       ))}
     </div>
   );
 }
 
-function LabReport({ lab }) {
+/* ================= LAB REPORT ================= */
+
+function LabReport({ lab, validation }) {
   if (!lab)
-    return <p className="text-gray-500">No lab reports available.</p>;
+    return (
+      <div className="bg-yellow-50 p-6 rounded-xl text-yellow-700">
+        Lab report required. Status: {validation}
+      </div>
+    );
 
   const toList = text =>
-    text?.split("\n")
-      .map(l => l.trim())
-      .filter(Boolean);
+    text?.split("\n").map(l => l.trim()).filter(Boolean);
 
   return (
-    <div className="space-y-8">
-
+    <div className="space-y-6">
       {lab.analysis?.map((a, i) => (
-        <details key={i}
-          className="bg-gray-50 p-5 rounded-xl">
+        <details key={i} className="bg-gray-50 p-5 rounded-xl">
           <summary className="font-medium cursor-pointer">
             {a.title}
           </summary>
@@ -333,9 +299,33 @@ function LabReport({ lab }) {
         </details>
       ))}
 
+      {lab.certifications && (
+        <div className="bg-gray-50 p-5 rounded-xl">
+          <h3 className="font-semibold mb-2">Certifications</h3>
+          <p className="text-gray-600 whitespace-pre-line">
+            {lab.certifications}
+          </p>
+        </div>
+      )}
+
+      {lab.notes && (
+        <div className="bg-gray-50 p-5 rounded-xl">
+          <h3 className="font-semibold mb-2">Lab Notes</h3>
+          <p className="text-gray-600 whitespace-pre-line">
+            {lab.notes}
+          </p>
+        </div>
+      )}
+
+      <div className="bg-gray-50 p-5 rounded-xl text-sm text-gray-600">
+        <p>Verified: {lab.verified ? "Yes ✔" : "Pending"}</p>
+        <p>Report Date: {formatDate(lab.created_at)}</p>
+      </div>
     </div>
   );
 }
+
+/* ================= TRANSPORT ================= */
 
 function Transport({ transports }) {
   if (!transports?.length)
@@ -344,8 +334,7 @@ function Transport({ transports }) {
   return (
     <div className="space-y-6">
       {transports.map(t => (
-        <div key={t.id}
-          className="bg-gray-50 p-5 rounded-xl">
+        <div key={t.id} className="bg-gray-50 p-5 rounded-xl">
           <p className="font-semibold">
             {t.origin} → {t.destination}
           </p>
@@ -355,9 +344,47 @@ function Transport({ transports }) {
           <p className="text-sm text-gray-600">
             Emission: {t.transport_emission}
           </p>
+          {t.notes && (
+            <p className="text-sm text-gray-600 mt-2">
+              Notes: {t.notes}
+            </p>
+          )}
+          <p className="text-xs text-gray-400 mt-2">
+            Logged: {formatDate(t.created_at)}
+          </p>
         </div>
       ))}
     </div>
+  );
+}
+
+/* ================= BADGES ================= */
+
+function StatusBadge({ status }) {
+  const color =
+    status === "approved"
+      ? "bg-green-100 text-green-700"
+      : status === "pending"
+      ? "bg-yellow-100 text-yellow-700"
+      : "bg-gray-200 text-gray-700";
+
+  return (
+    <span className={`px-4 py-1 rounded-full text-sm font-medium ${color}`}>
+      {status?.toUpperCase()}
+    </span>
+  );
+}
+
+function SafetyBadge({ status }) {
+  const safe = status === "safe";
+  return (
+    <span
+      className={`px-4 py-1 rounded-full text-sm font-medium ${
+        safe ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+      }`}
+    >
+      {safe ? "SAFE ✔" : "RISK"}
+    </span>
   );
 }
 
@@ -372,9 +399,11 @@ function Fact({ label, value }) {
 
 function CenterMsg({ text, error }) {
   return (
-    <div className={`min-h-screen flex items-center justify-center ${
-      error ? "text-red-600" : "text-gray-500"
-    }`}>
+    <div
+      className={`min-h-screen flex items-center justify-center ${
+        error ? "text-red-600" : "text-gray-500"
+      }`}
+    >
       {text}
     </div>
   );
