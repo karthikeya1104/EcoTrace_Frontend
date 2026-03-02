@@ -47,15 +47,18 @@ export default function LabReportDetail() {
         ← Back to Reports
       </button>
 
-      {/* Report Info */}
+      {/* Report Overview */}
       <div className="bg-white rounded-2xl shadow p-6 mb-6">
 
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold text-green-800">
-            Lab Report Details
+            Lab Report Overview
           </h2>
 
-          <StatusBadge verified={report.verified} />
+          <StatusBadge 
+            verified={report.verified} 
+            safetyStatus={report.safety_status}
+          />
         </div>
 
         <div className="grid md:grid-cols-2 gap-6 text-sm">
@@ -63,20 +66,24 @@ export default function LabReportDetail() {
           <div>
             <p className="text-gray-500">Lab Score</p>
             <p className="text-2xl font-bold text-green-700">
-              {report.lab_score}/100
+              {report.lab_score}/5
             </p>
           </div>
 
           <div>
-            <p className="text-gray-500">Eco Rating</p>
-            <p className="text-2xl font-bold text-green-700">
-              {report.eco_rating}/5
+            <p className="text-gray-500">Safety Status</p>
+            <p className={`text-lg font-semibold ${
+              report.safety_status === "safe"
+                ? "text-green-600"
+                : "text-red-600"
+            }`}>
+              {report.safety_status?.toUpperCase()}
             </p>
           </div>
 
           <div>
             <p className="text-gray-500">Certifications</p>
-            <p>
+            <p className="whitespace-pre-line">
               {report.certifications || "No certifications"}
             </p>
           </div>
@@ -89,19 +96,35 @@ export default function LabReportDetail() {
           </div>
 
         </div>
-
       </div>
 
-      {/* Test Summary */}
-      <div className="bg-white rounded-2xl shadow p-6 mb-6">
-        <h3 className="text-lg font-semibold text-green-800 mb-3">
-          Test Summary
-        </h3>
+      {/* Analysis Sections */}
+      {report.analysis_data?.map((section, index) => (
+        <div
+          key={index}
+          className="bg-white rounded-2xl shadow p-6 mb-6"
+        >
+          <h3 className="text-lg font-semibold text-green-800 mb-3">
+            {section.title}
+          </h3>
 
-        <p className="text-gray-700 whitespace-pre-line">
-          {report.test_summary}
-        </p>
-      </div>
+          <p className="text-gray-700 whitespace-pre-line">
+            {section.content}
+          </p>
+        </div>
+      ))}
+
+      {/* Notes */}
+      {report.notes && (
+        <div className="bg-white rounded-2xl shadow p-6 mb-6">
+          <h3 className="text-lg font-semibold text-green-800 mb-3">
+            Additional Notes
+          </h3>
+          <p className="text-gray-700 whitespace-pre-line">
+            {report.notes}
+          </p>
+        </div>
+      )}
 
       {/* Batch Info */}
       <div className="bg-white rounded-2xl shadow p-6">
@@ -133,7 +156,6 @@ export default function LabReportDetail() {
           </div>
 
         </div>
-
       </div>
 
     </DashboardLayout>
@@ -143,14 +165,26 @@ export default function LabReportDetail() {
 
 /* ---------- Status Badge ---------- */
 
-function StatusBadge({ verified }) {
-  return verified ? (
-    <span className="px-3 py-1 text-sm bg-green-100 text-green-700 rounded-full">
-      Verified
-    </span>
-  ) : (
-    <span className="px-3 py-1 text-sm bg-yellow-100 text-yellow-700 rounded-full">
-      Pending
-    </span>
+function StatusBadge({ verified, safetyStatus }) {
+  return (
+    <div className="flex gap-2">
+      <span className={`px-3 py-1 text-sm rounded-full ${
+        verified
+          ? "bg-green-100 text-green-700"
+          : "bg-yellow-100 text-yellow-700"
+      }`}>
+        {verified ? "Verified" : "Pending"}
+      </span>
+
+      {safetyStatus && (
+        <span className={`px-3 py-1 text-sm rounded-full ${
+          safetyStatus === "safe"
+            ? "bg-green-100 text-green-700"
+            : "bg-red-100 text-red-700"
+        }`}>
+          {safetyStatus.toUpperCase()}
+        </span>
+      )}
+    </div>
   );
 }

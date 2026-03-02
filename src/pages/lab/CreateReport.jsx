@@ -7,34 +7,29 @@ export default function CreateReport() {
   const { batchId } = useParams();
   const navigate = useNavigate();
 
-  const [batch, setBatch] = useState(null);
+  const [batchData, setBatchData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  // 🔥 Dynamic Analysis Sections
+  const [analysisSections, setAnalysisSections] = useState([
+    { title: "", content: "" }
+  ]);
 
   const [form, setForm] = useState({
-    test_summary: "",
     certifications: "",
-    eco_rating: "",
+    notes: "",
+    safety_status: "",
     lab_score: ""
   });
 
-  const [error, setError] = useState("");
-
-  // ✅ Fetch batch info (FIXED HERE)
   useEffect(() => {
     async function fetchBatch() {
       try {
         const res = await api.get(`/api/batch/${batchId}`);
-        const data = res.data;
-
-        // 🔥 Normalize backend response
-        setBatch({
-          batch_code: data.batch.code,
-          manufacturing_location: data.batch.location,
-          expiry_date: data.batch.expiry,
-          product: data.product
-        });
-      } catch (err) {
+        setBatchData(res.data);
+      } catch {
         setError("Failed to load batch details");
       } finally {
         setLoading(false);
@@ -51,6 +46,21 @@ export default function CreateReport() {
     });
   }
 
+  function handleSectionChange(index, field, value) {
+    const updated = [...analysisSections];
+    updated[index][field] = value;
+    setAnalysisSections(updated);
+  }
+
+  function addSection() {
+    setAnalysisSections([...analysisSections, { title: "", content: "" }]);
+  }
+
+  function removeSection(index) {
+    const updated = analysisSections.filter((_, i) => i !== index);
+    setAnalysisSections(updated);
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     setSubmitting(true);
@@ -58,17 +68,16 @@ export default function CreateReport() {
 
     try {
       await api.post(`/api/lab-reports/batch/${batchId}`, {
-        test_summary: form.test_summary,
+        analysis_data: analysisSections,
         certifications: form.certifications,
-        eco_rating: Number(form.eco_rating),
+        notes: form.notes,
+        safety_status: form.safety_status,
         lab_score: Number(form.lab_score)
       });
 
       navigate("/lab/reports");
     } catch (err) {
-      setError(
-        err.response?.data?.detail || "Failed to create report"
-      );
+      setError(err.response?.data?.detail || "Failed to create report");
     } finally {
       setSubmitting(false);
     }
@@ -76,139 +85,168 @@ export default function CreateReport() {
 
   if (loading) {
     return (
-      <DashboardLayout title="Create Report">
+      <DashboardLayout title="Create Lab Report">
         <div className="p-6">Loading...</div>
       </DashboardLayout>
     );
   }
 
-  if (!batch) {
+  if (!batchData) {
     return (
-      <DashboardLayout title="Create Report">
+      <DashboardLayout title="Create Lab Report">
         <div className="p-6 text-red-600">Batch not found</div>
       </DashboardLayout>
     );
   }
 
+  const { batch, product, materials } = batchData;
+
   return (
     <DashboardLayout title="Create Lab Report">
 
-      {/* Batch Info */}
+      {/* ===== Batch Overview ===== */}
       <div className="bg-white rounded-2xl shadow p-6 mb-6">
-        <h2 className="text-lg font-semibold text-green-800 mb-3">
-          Batch Information
+        <h2 className="text-lg font-semibold text-green-800 mb-4">
+          Batch Overview
         </h2>
 
-        <div className="grid md:grid-cols-2 gap-4 text-sm">
-          <div>
-            <p className="text-gray-500">Batch Code</p>
-            <p className="font-medium">{batch.batch_code}</p>
-          </div>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+          <Info label="Product" value={product.name} />
+          <Info label="Brand" value={product.brand} />
+          <Info label="Batch Code" value={batch.code} />
+          <Info label="Location" value={batch.manufacturing_location} />
+          <Info label="Expiry"
+                value={new Date(batch.expiry_date).toLocaleDateString()} />
+        </div>
 
-          <div>
-            <p className="text-gray-500">Product</p>
-            <p className="font-medium">{batch.product?.name}</p>
-          </div>
-
-          <div>
-            <p className="text-gray-500">Manufacturing Location</p>
-            <p>{batch.manufacturing_location}</p>
-          </div>
-
-          <div>
-            <p className="text-gray-500">Expiry Date</p>
-            <p>
-              {batch.expiry_date &&
-                new Date(batch.expiry_date).toLocaleDateString()}
-            </p>
-          </div>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {materials.map(m => (
+            <span
+              key={m.material_id}
+              className="px-3 py-1 text-xs bg-green-50 text-green-700 rounded-full"
+            >
+              {m.name} ({m.percentage}%)
+            </span>
+          ))}
         </div>
       </div>
 
-      {/* Form */}
+      {/* ===== Report Form ===== */}
       <div className="bg-white rounded-2xl shadow p-6">
-        <h2 className="text-lg font-semibold text-green-800 mb-4">
-          Report Details
+
+        <h2 className="text-lg font-semibold text-green-800 mb-6">
+          Lab Report Details
         </h2>
 
-        {error && (
-          <div className="mb-4 text-red-600 text-sm">
-            {error}
-          </div>
-        )}
+        {error && <div className="text-red-600 mb-4">{error}</div>}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
 
-          {/* Test Summary */}
+          {/* 🔥 Dynamic Sections */}
           <div>
-            <label className="block text-sm text-gray-600 mb-1">
-              Test Summary
-            </label>
-            <textarea
-              name="test_summary"
-              value={form.test_summary}
-              onChange={handleChange}
-              required
-              rows={4}
-              className="w-full border rounded-xl px-4 py-2"
-            />
+            <h3 className="text-sm font-medium text-gray-700 mb-3">
+              Analysis Sections
+            </h3>
+
+            {analysisSections.map((section, index) => (
+              <div key={index} className="border rounded-xl p-4 mb-4 bg-gray-50">
+
+                <input
+                  type="text"
+                  placeholder="Section Title (e.g. Microbiological Analysis)"
+                  value={section.title}
+                  onChange={(e) =>
+                    handleSectionChange(index, "title", e.target.value)
+                  }
+                  required
+                  className="w-full border rounded-lg px-3 py-2 mb-3"
+                />
+
+                <textarea
+                  rows={4}
+                  placeholder="Enter detailed analysis..."
+                  value={section.content}
+                  onChange={(e) =>
+                    handleSectionChange(index, "content", e.target.value)
+                  }
+                  required
+                  className="w-full border rounded-lg px-3 py-2"
+                />
+
+                {analysisSections.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeSection(index)}
+                    className="text-red-500 text-xs mt-2"
+                  >
+                    Remove Section
+                  </button>
+                )}
+
+              </div>
+            ))}
+
+            <button
+              type="button"
+              onClick={addSection}
+              className="text-green-600 text-sm"
+            >
+              + Add Section
+            </button>
           </div>
 
           {/* Certifications */}
-          <div>
-            <label className="block text-sm text-gray-600 mb-1">
-              Certifications
-            </label>
-            <input
-              type="text"
-              name="certifications"
-              value={form.certifications}
-              onChange={handleChange}
-              className="w-full border rounded-xl px-4 py-2"
-            />
-          </div>
+          <FormInput
+            label="Certifications"
+            name="certifications"
+            value={form.certifications}
+            onChange={handleChange}
+          />
 
-          {/* Eco Rating */}
+          {/* Notes */}
+          <FormTextarea
+            label="Additional Notes"
+            name="notes"
+            value={form.notes}
+            onChange={handleChange}
+          />
+
+          {/* Safety Status */}
           <div>
             <label className="block text-sm text-gray-600 mb-1">
-              Eco Rating (1-5)
+              Safety Status
             </label>
             <select
-              name="eco_rating"
-              value={form.eco_rating}
+              name="safety_status"
+              value={form.safety_status}
               onChange={handleChange}
               required
               className="w-full border rounded-xl px-4 py-2"
             >
-              <option value="">Select rating</option>
-              {[1,2,3,4,5].map(n => (
-                <option key={n} value={n}>{n}</option>
-              ))}
+              <option value="">Select status</option>
+              <option value="safe">Safe</option>
+              <option value="caution">Caution</option>
+              <option value="unsafe">Unsafe</option>
             </select>
           </div>
 
           {/* Lab Score */}
-          <div>
-            <label className="block text-sm text-gray-600 mb-1">
-              Lab Score (0-100)
-            </label>
-            <input
-              type="number"
-              name="lab_score"
-              value={form.lab_score}
-              onChange={handleChange}
-              min="0"
-              max="100"
-              required
-              className="w-full border rounded-xl px-4 py-2"
-            />
-          </div>
+          <FormInput
+            label="Lab Score (0 - 5)"
+            name="lab_score"
+            type="number"
+            min="0"
+            max="5"
+            step="0.1"
+            value={form.lab_score}
+            onChange={handleChange}
+            required
+          />
 
-          {/* Submit */}
           <button
             type="submit"
             disabled={submitting}
-            className="w-full bg-green-600 text-white py-2 rounded-xl hover:bg-green-700 transition disabled:opacity-50"
+            className="w-full bg-green-600 text-white py-3 rounded-xl hover:bg-green-700 transition"
           >
             {submitting ? "Submitting..." : "Submit Report"}
           </button>
@@ -217,5 +255,38 @@ export default function CreateReport() {
       </div>
 
     </DashboardLayout>
+  );
+}
+
+/* Reusable Components */
+
+function Info({ label, value }) {
+  return (
+    <div>
+      <p className="text-gray-500">{label}</p>
+      <p className="font-medium">{value}</p>
+    </div>
+  );
+}
+
+function FormInput({ label, ...props }) {
+  return (
+    <div>
+      <label className="block text-sm text-gray-600 mb-1">
+        {label}
+      </label>
+      <input {...props} className="w-full border rounded-xl px-4 py-2" />
+    </div>
+  );
+}
+
+function FormTextarea({ label, ...props }) {
+  return (
+    <div>
+      <label className="block text-sm text-gray-600 mb-1">
+        {label}
+      </label>
+      <textarea {...props} rows={4} className="w-full border rounded-xl px-4 py-2" />
+    </div>
   );
 }

@@ -11,9 +11,9 @@ export default function CreateBatch() {
     batch_code: "",
     manufacture_date: "",
     expiry_date: "",
-    material_info: "",
     manufacturing_location: "",
     base_carbon_footprint: "",
+    material: [{ name: "", percentage: "", source: "" }]
   });
 
   const [loading, setLoading] = useState(false);
@@ -23,7 +23,7 @@ export default function CreateBatch() {
   const [qrLoading, setQrLoading] = useState(false);
 
   // =========================
-  // Form Handling
+  // Basic Input Change
   // =========================
   const handleChange = (e) => {
     setForm(prev => ({
@@ -33,29 +33,55 @@ export default function CreateBatch() {
   };
 
   // =========================
+  // Material Handlers
+  // =========================
+  const addMaterial = () => {
+    setForm(prev => ({
+      ...prev,
+      material: [
+        ...prev.material,
+        { name: "", percentage: "", source: "" }
+      ]
+    }));
+  };
+
+  const updateMaterial = (index, field, value) => {
+    const updated = [...form.material];
+    updated[index][field] = value;
+
+    setForm(prev => ({
+      ...prev,
+      material: updated
+    }));
+  };
+
+  const removeMaterial = (index) => {
+    const updated = form.material.filter((_, i) => i !== index);
+    setForm(prev => ({
+      ...prev,
+      material: updated
+    }));
+  };
+
+  // =========================
   // Validation
   // =========================
   function validate() {
-    if (!form.batch_code.trim()) {
-      return "Batch code is required.";
-    }
+    if (!form.batch_code.trim()) return "Batch code is required.";
+    if (!form.manufacture_date) return "Manufacture date is required.";
+    if (!form.expiry_date) return "Expiry date is required.";
 
-    if (!form.manufacture_date) {
-      return "Manufacture date is required.";
-    }
-
-    if (!form.expiry_date) {
-      return "Expiry date is required.";
-    }
-
-    if (new Date(form.expiry_date) <= new Date(form.manufacture_date)) {
+    if (new Date(form.expiry_date) <= new Date(form.manufacture_date))
       return "Expiry date must be after manufacture date.";
-    }
 
     const carbon = Number(form.base_carbon_footprint);
-
-    if (isNaN(carbon) || carbon < 0) {
+    if (isNaN(carbon) || carbon < 0)
       return "Base carbon footprint must be a positive number.";
+
+    for (let mat of form.material) {
+      if (!mat.name.trim()) return "Material name is required.";
+      if (Number(mat.percentage) < 0 || Number(mat.percentage) > 100)
+        return "Material percentage must be between 0 and 100.";
     }
 
     return null;
@@ -66,11 +92,9 @@ export default function CreateBatch() {
   // =========================
   const submit = async (e) => {
     e.preventDefault();
-
     if (loading) return;
 
     setError(null);
-
     const validationError = validate();
     if (validationError) {
       setError(validationError);
@@ -80,14 +104,23 @@ export default function CreateBatch() {
     try {
       setLoading(true);
 
-      const res = await axios.post(`/api/batches/${productId}`, {
-        ...form,
+      const payload = {
+        batch_code: form.batch_code,
+        manufacture_date: new Date(form.manufacture_date).toISOString(),
+        expiry_date: new Date(form.expiry_date).toISOString(),
+        manufacturing_location: form.manufacturing_location,
         base_carbon_footprint: Number(form.base_carbon_footprint),
-      });
+        material: form.material.map(m => ({
+          name: m.name,
+          percentage: Number(m.percentage),
+          source: m.source
+        }))
+      };
 
-      if (!res.data?.qr_url) {
+      const res = await axios.post(`/api/batches/${productId}`, payload);
+
+      if (!res.data?.qr_url)
         throw new Error("QR URL missing from response.");
-      }
 
       setQrUrl(res.data.qr_url);
 
@@ -100,7 +133,7 @@ export default function CreateBatch() {
   };
 
   // =========================
-  // Generate QR Image
+  // Generate QR
   // =========================
   useEffect(() => {
     if (!qrUrl) return;
@@ -110,8 +143,7 @@ export default function CreateBatch() {
         setQrLoading(true);
         const url = await QRCode.toDataURL(qrUrl, { width: 300 });
         setQrImage(url);
-      } catch (err) {
-        console.error(err);
+      } catch {
         setError("Failed to generate QR image.");
       } finally {
         setQrLoading(false);
@@ -121,9 +153,6 @@ export default function CreateBatch() {
     generateQR();
   }, [qrUrl]);
 
-  // =========================
-  // Download QR
-  // =========================
   const downloadQR = () => {
     if (!qrImage) return;
 
@@ -137,47 +166,43 @@ export default function CreateBatch() {
 
   return (
     <DashboardLayout role="manufacturer" title="Create Batch">
-      <div className="min-h-[calc(100vh-120px)] flex items-center justify-center">
-        <div className="w-full max-w-2xl">
+      <div className="min-h-[calc(100vh-120px)] flex justify-center px-4 sm:px-6">
+        <div className="w-full max-w-3xl py-8">
 
           {/* Header */}
           <div className="mb-8 text-center">
-            <h2 className="text-2xl font-bold text-green-800">
+            <h2 className="text-2xl sm:text-3xl font-bold text-green-800">
               Create Batch
             </h2>
-            <p className="text-gray-600 mt-1">
+            <p className="text-gray-600 mt-2 text-sm sm:text-base">
               Add batch-level manufacturing and sustainability details.
             </p>
           </div>
 
-          {/* Error Message */}
           {error && (
-            <div className="mb-4 p-4 bg-red-50 text-red-700 rounded-xl">
+            <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-xl text-sm">
               {error}
             </div>
           )}
 
-          {/* FORM */}
           {!qrUrl && (
-            <div className="bg-white rounded-2xl shadow p-6">
-              <form onSubmit={submit} className="space-y-5">
+            <div className="bg-white rounded-2xl shadow p-5 sm:p-8">
+              <form onSubmit={submit} className="space-y-6">
 
                 <Input
                   label="Batch Code"
                   name="batch_code"
                   value={form.batch_code}
                   onChange={handleChange}
-                  required
                 />
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <Input
                     label="Manufacture Date"
                     name="manufacture_date"
                     type="datetime-local"
                     value={form.manufacture_date}
                     onChange={handleChange}
-                    required
                   />
                   <Input
                     label="Expiry Date"
@@ -185,16 +210,8 @@ export default function CreateBatch() {
                     type="datetime-local"
                     value={form.expiry_date}
                     onChange={handleChange}
-                    required
                   />
                 </div>
-
-                <Textarea
-                  label="Material Information"
-                  name="material_info"
-                  value={form.material_info}
-                  onChange={handleChange}
-                />
 
                 <Input
                   label="Manufacturing Location"
@@ -211,14 +228,94 @@ export default function CreateBatch() {
                   step="0.01"
                   value={form.base_carbon_footprint}
                   onChange={handleChange}
-                  required
                 />
 
-                <div className="flex justify-center pt-4">
+                {/* MATERIALS */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    Materials
+                  </label>
+
+                  <div className="space-y-4">
+                    {form.material.map((mat, index) => (
+                      <div
+                        key={index}
+                        className="border rounded-xl p-4 bg-gray-50"
+                      >
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4">
+
+                          <div className="lg:col-span-4">
+                            <Input
+                              label="Name"
+                              value={mat.name}
+                              onChange={(e) =>
+                                updateMaterial(index, "name", e.target.value)
+                              }
+                            />
+                          </div>
+
+                          <div className="lg:col-span-3">
+                            <Input
+                              label="Percentage (%)"
+                              type="number"
+                              min="0"
+                              max="100"
+                              value={mat.percentage}
+                              onChange={(e) =>
+                                updateMaterial(index, "percentage", e.target.value)
+                              }
+                            />
+                          </div>
+
+                          <div className="lg:col-span-4">
+                            <Input
+                              label="Source"
+                              value={mat.source}
+                              onChange={(e) =>
+                                updateMaterial(index, "source", e.target.value)
+                              }
+                            />
+                          </div>
+
+                          <div className="lg:col-span-1 flex items-end justify-end">
+                            {form.material.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => removeMaterial(index)}
+                                className="text-red-500 text-sm hover:text-red-700"
+                              >
+                                Remove
+                              </button>
+                            )}
+                          </div>
+
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={addMaterial}
+                    className="mt-4 w-full sm:w-auto text-sm text-green-600 hover:text-green-700"
+                  >
+                    + Add Material
+                  </button>
+                </div>
+
+                <div className="pt-4">
                   <button
                     type="submit"
                     disabled={loading}
-                    className="px-8 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition disabled:opacity-60"
+                    className="
+                      w-full sm:w-auto
+                      px-8 py-3
+                      bg-green-600 text-white
+                      rounded-xl
+                      hover:bg-green-700
+                      transition
+                      disabled:opacity-60
+                    "
                   >
                     {loading ? "Creating..." : "Create Batch"}
                   </button>
@@ -232,34 +329,24 @@ export default function CreateBatch() {
           {qrUrl && (
             <div className="bg-white rounded-2xl shadow p-6 text-center">
 
-              <h3 className="text-xl font-semibold text-green-700 mb-2">
+              <h3 className="text-xl font-semibold text-green-700 mb-4">
                 Batch Created Successfully 🌱
               </h3>
 
-              {qrLoading && (
-                <div className="text-gray-500">Generating QR...</div>
-              )}
+              {qrLoading && <div className="text-gray-500">Generating QR...</div>}
 
               {qrImage && (
                 <img
                   src={qrImage}
                   alt="Batch QR Code"
-                  className="mx-auto my-4 rounded-xl"
+                  className="mx-auto my-4 rounded-xl w-48 sm:w-64"
                 />
               )}
 
-              <div className="text-sm text-gray-600 space-y-1 mb-4">
-                <p><b>Batch Code:</b> {form.batch_code}</p>
-                <p><b>Manufactured At:</b> {form.manufacture_date}</p>
-                <p><b>Location:</b> {form.manufacturing_location || "-"}</p>
-                <p><b>Base CO₂:</b> {form.base_carbon_footprint} kg</p>
-              </div>
-
-              <div className="flex justify-center gap-4">
+              <div className="flex flex-col sm:flex-row justify-center gap-4 mt-6">
                 <button
                   onClick={downloadQR}
-                  disabled={!qrImage}
-                  className="px-6 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition disabled:opacity-60"
+                  className="px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition"
                 >
                   Download QR
                 </button>
@@ -268,7 +355,7 @@ export default function CreateBatch() {
                   href={qrUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="px-6 py-2 border border-gray-300 rounded-xl text-gray-600 hover:bg-gray-50 transition"
+                  className="px-6 py-3 border border-gray-300 rounded-xl text-gray-600 hover:bg-gray-50 transition"
                 >
                   Open Link
                 </a>
@@ -283,7 +370,7 @@ export default function CreateBatch() {
   );
 }
 
-/* Reusable Inputs */
+/* Reusable Input */
 
 function Input({ label, ...props }) {
   return (
@@ -293,24 +380,12 @@ function Input({ label, ...props }) {
       </label>
       <input
         {...props}
-        className="w-full px-4 py-2 rounded-xl border border-gray-300
-                   focus:outline-none focus:ring-2 focus:ring-green-500"
-      />
-    </div>
-  );
-}
-
-function Textarea({ label, ...props }) {
-  return (
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">
-        {label}
-      </label>
-      <textarea
-        {...props}
-        rows={3}
-        className="w-full px-4 py-2 rounded-xl border border-gray-300
-                   focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
+        className="
+          w-full px-4 py-2
+          rounded-xl border border-gray-300
+          focus:outline-none focus:ring-2 focus:ring-green-500
+          text-sm
+        "
       />
     </div>
   );
