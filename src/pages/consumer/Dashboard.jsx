@@ -1,53 +1,51 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import api from "../../api/axios";
 import DashboardLayout from "../../layouts/DashboardLayout";
 
-export default function LabDashboard() {
+export default function ConsumerDashboard() {
   const [stats, setStats] = useState(null);
   const [recent, setRecent] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     api
-      .get("/api/lab-reports/my/stats")
+      .get("/api/reviews/dashboard")
       .then((res) => {
         setStats(res.data);
-        setRecent(res.data.recent_reports || []);
+        setRecent(res.data.recent_reviews || []);
       })
       .finally(() => setLoading(false));
   }, []);
 
   if (loading)
     return (
-      <DashboardLayout title="Lab Dashboard">
+      <DashboardLayout title="My Dashboard">
         <div className="p-6">Loading...</div>
       </DashboardLayout>
     );
 
   return (
-    <DashboardLayout title="Lab Dashboard">
+    <DashboardLayout title="My Dashboard">
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
-        <StatCard title="Total Tested" value={stats?.total_batches_tested || 0} />
-        <StatCard title="Unique Products" value={stats?.unique_products_tested || 0} />
-        <StatCard title="Verified Reports" value={stats?.verified_reports || 0} />
-        <StatCard title="Pending Reports" value={stats?.pending_reports || 0} />
+        <StatCard title="Total Reviews" value={stats?.total_reviews || 0} />
+        <StatCard title="5 ⭐ Ratings" value={stats?.ratings?.["5"] || 0} />
+        <StatCard title="4 ⭐ Ratings" value={stats?.ratings?.["4"] || 0} />
+        <StatCard title="3 ⭐ Ratings" value={stats?.ratings?.["3"] || 0} />
+      </div>
+
+      {/* Extra row for remaining ratings */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-2 gap-6 mb-8">
+        <StatCard title="2 ⭐ Ratings" value={stats?.ratings?.["2"] || 0} />
+        <StatCard title="1 ⭐ Ratings" value={stats?.ratings?.["1"] || 0} />
       </div>
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
         <h2 className="text-xl font-semibold text-green-800">
-          Recent Reports
+          Recent Reviews
         </h2>
-
-        <Link
-          to="/lab/pending-tests"
-          className="px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition"
-        >
-          View Pending Tests
-        </Link>
       </div>
 
       {/* Desktop Table */}
@@ -55,11 +53,10 @@ export default function LabDashboard() {
         <table className="w-full text-left min-w-[700px]">
           <thead className="bg-green-50">
             <tr>
-              <th className="p-4">Report ID</th>
+              <th className="p-4">Review ID</th>
               <th className="p-4">Batch</th>
-              <th className="p-4">Score</th>
-              <th className="p-4">Safety</th>
-              <th className="p-4">Status</th>
+              <th className="p-4">Rating</th>
+              <th className="p-4">Comment</th>
               <th className="p-4">Date</th>
             </tr>
           </thead>
@@ -67,8 +64,8 @@ export default function LabDashboard() {
           <tbody>
             {recent.length === 0 && (
               <tr>
-                <td colSpan="6" className="text-center p-6 text-gray-500">
-                  No reports yet
+                <td colSpan="5" className="text-center p-6 text-gray-500">
+                  No reviews yet
                 </td>
               </tr>
             )}
@@ -79,16 +76,12 @@ export default function LabDashboard() {
 
                 <td className="p-4">#{r.batch_id}</td>
 
-                <td className="p-4 font-semibold text-green-700">
-                  {r.lab_score ?? "-"}
+                <td className="p-4">
+                  <RatingBadge rating={r.rating} />
                 </td>
 
-                <td className="p-4">
-                  <SafetyBadge status={r.safety_status} />
-                </td>
-
-                <td className="p-4">
-                  <StatusBadge verified={r.verified} />
+                <td className="p-4 text-gray-600">
+                  {r.comment || "-"}
                 </td>
 
                 <td className="p-4 text-sm text-gray-600">
@@ -104,26 +97,25 @@ export default function LabDashboard() {
       <div className="md:hidden space-y-4">
         {recent.length === 0 && (
           <div className="text-center text-gray-500 py-6">
-            No reports yet
+            No reviews yet
           </div>
         )}
 
         {recent.map((r) => (
           <div key={r.id} className="bg-white rounded-2xl shadow p-4 space-y-2">
             <div className="font-semibold text-green-700">
-              Report #{r.id}
+              Review #{r.id}
             </div>
 
             <div className="text-sm text-gray-600">
               Batch #{r.batch_id}
             </div>
 
-            <div className="flex justify-between text-sm">
-              <span>Score: {r.lab_score ?? "-"}</span>
-              <SafetyBadge status={r.safety_status} />
-            </div>
+            <RatingBadge rating={r.rating} />
 
-            <StatusBadge verified={r.verified} />
+            <div className="text-sm text-gray-600">
+              {r.comment || "No comment"}
+            </div>
 
             <div className="text-xs text-gray-500">
               {new Date(r.created_at).toLocaleDateString()}
@@ -135,6 +127,8 @@ export default function LabDashboard() {
     </DashboardLayout>
   );
 }
+
+/* Components */
 
 function StatCard({ title, value }) {
   return (
@@ -148,38 +142,18 @@ function StatCard({ title, value }) {
   );
 }
 
-function StatusBadge({ verified }) {
-  return verified ? (
-    <span className="px-3 py-1 text-sm bg-green-100 text-green-700 rounded-full">
-      Verified
-    </span>
-  ) : (
-    <span className="px-3 py-1 text-sm bg-yellow-100 text-yellow-700 rounded-full">
-      Pending
-    </span>
-  );
-}
-
-function SafetyBadge({ status }) {
-  if (status === "safe") {
-    return (
-      <span className="px-3 py-1 text-xs bg-green-100 text-green-700 rounded-full">
-        Safe
-      </span>
-    );
-  }
-
-  if (status === "unsafe") {
-    return (
-      <span className="px-3 py-1 text-xs bg-red-100 text-red-700 rounded-full">
-        Unsafe
-      </span>
-    );
-  }
+function RatingBadge({ rating }) {
+  const colors = {
+    5: "bg-green-100 text-green-700",
+    4: "bg-green-100 text-green-700",
+    3: "bg-yellow-100 text-yellow-700",
+    2: "bg-orange-100 text-orange-700",
+    1: "bg-red-100 text-red-700",
+  };
 
   return (
-    <span className="px-3 py-1 text-xs bg-gray-100 text-gray-600 rounded-full">
-      Unknown
+    <span className={`px-3 py-1 text-sm rounded-full ${colors[rating]}`}>
+      {rating} ⭐
     </span>
   );
 }

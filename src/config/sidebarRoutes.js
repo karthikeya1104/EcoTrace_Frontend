@@ -17,5 +17,12 @@ export const sidebarRoutes = {
     { label: "My Reports", path: "/lab/reports" },
     { label: "Pending Tests", path: "/lab/pending-tests" }
   ],
-  consumer: []
+  consumer: [
+    { label: "Dashboard", path: "/consumer/dashboard" },
+    { label: "My Reviews", path: "/consumer/my-reviews" }
+  ],
+  admin: [
+    { label: "Dashboard", path: "/admin/dashboard" },
+    { label: "Lab Reports", path: "/admin/reports" }
+  ]
 };

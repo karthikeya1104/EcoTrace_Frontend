@@ -162,7 +162,7 @@ function ActionButtons({ role, batchId, navigate }) {
   if (role === "consumer") {
     return (
       <button
-        onClick={() => navigate(`/consumer/rate/${batchId}`)}
+        onClick={() => navigate(`/consumer/batches/${batchId}/reviews`)}
         className="px-6 py-2 rounded-xl bg-green-600 text-white"
       >
         Give Rating
@@ -342,7 +342,7 @@ function Transport({ transports }) {
             {t.distance_km} km • {t.vehicle_type} • {t.fuel_type}
           </p>
           <p className="text-sm text-gray-600">
-            Emission: {t.transport_emission}
+            Emission: {t.transport_emission} kg CO₂
           </p>
           {t.notes && (
             <p className="text-sm text-gray-600 mt-2">

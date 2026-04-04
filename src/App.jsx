@@ -27,6 +27,17 @@ import PendingTests from "./pages/lab/PendingTests";
 import CreateReport from "./pages/lab/CreateReport";
 import LabReportDetail from "./pages/lab/LabReportDetail";
 
+// Admin pages
+import AdminDashboard from "./pages/admin/Dashboard";
+import AdminReportsList from "./pages/admin/AdminReportsList";
+import AdminReportDetail from "./pages/admin/AdminReportDetail";
+
+// Consumer pages
+import BatchReviews from "./pages/consumer/BatchReviews";
+import ConsumerDashboard from "./pages/consumer/Dashboard";
+import MyReviews from "./pages/consumer/MyReviews";
+
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -59,7 +70,17 @@ export default function App() {
         <Route path="/lab/pending-tests" element={<ProtectedRoute role="lab"><PendingTests /></ProtectedRoute>} />
         <Route path="/lab/create-report/:batchId" element={<ProtectedRoute role="lab"><CreateReport /></ProtectedRoute>} />
         <Route path="/lab/reports/:reportId" element={<ProtectedRoute role="lab"><LabReportDetail /></ProtectedRoute>} />
-        
+
+        {/* Admin pages */}
+        <Route path="/admin/dashboard" element={<ProtectedRoute role="admin"><AdminDashboard /></ProtectedRoute>} />
+        <Route path="/admin/reports" element={<ProtectedRoute role="admin"><AdminReportsList /></ProtectedRoute>} />
+        <Route path="/admin/reports/:id" element={<ProtectedRoute role="admin"><AdminReportDetail /></ProtectedRoute>} />
+
+        {/* Consumer pages */}
+        <Route path="/consumer/batches/:id/reviews" element={<ProtectedRoute role="consumer"><BatchReviews /></ProtectedRoute>} />
+        <Route path="/consumer/dashboard" element={<ProtectedRoute role="consumer"><ConsumerDashboard /></ProtectedRoute>} />
+        <Route path="/consumer/my-reviews" element={<ProtectedRoute role="consumer"><MyReviews /></ProtectedRoute>} />
+
         {/* Fallback */}
         <Route path="*" element={<NotFound />} />
       </Routes>
