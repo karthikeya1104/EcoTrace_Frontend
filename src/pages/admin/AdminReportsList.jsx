@@ -101,7 +101,7 @@ export default function AdminReportsList() {
             {data.items.map(r => (
               <tr
                 key={r.id}
-                onClick={() => navigate(`/admin/reports/${r.id}`)}
+                onClick={() => navigate(`/admin/reports/${r.batch_id}`)}
                 className="border-t hover:bg-green-50 cursor-pointer"
               >
                 <td className="p-4 font-medium">

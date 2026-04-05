@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import { getUser, isAuthenticated } from "../utils/useAuth";
+import ReviewSection from "../components/reviews/ReviewSection";
 
 export default function PublicBatch() {
   const { id } = useParams();
@@ -129,6 +130,12 @@ export default function PublicBatch() {
             )}
           </div>
         </div>
+        <ReviewSection
+          batchId={id}
+          productId={data.product.id}
+          batchStatus={data.batch.status} 
+          navigate={navigate}
+        />
       </div>
     </div>
   );
@@ -318,7 +325,7 @@ function LabReport({ lab, validation }) {
       )}
 
       <div className="bg-gray-50 p-5 rounded-xl text-sm text-gray-600">
-        <p>Verified: {lab.verified ? "Yes ✔" : "Pending"}</p>
+        <p>Verified: {lab.verified ? "Yes" : "Pending"}</p>
         <p>Report Date: {formatDate(lab.created_at)}</p>
       </div>
     </div>
@@ -361,16 +368,19 @@ function Transport({ transports }) {
 /* ================= BADGES ================= */
 
 function StatusBadge({ status }) {
-  const color =
-    status === "approved"
-      ? "bg-green-100 text-green-700"
-      : status === "pending"
-      ? "bg-yellow-100 text-yellow-700"
-      : "bg-gray-200 text-gray-700";
+  const styles = {
+    verified: "bg-green-100 text-green-700",
+    pending: "bg-yellow-100 text-yellow-700",
+    rejected: "bg-red-100 text-red-700",
+  };
+
+  const color = styles[status] || "bg-gray-200 text-gray-700";
 
   return (
-    <span className={`px-4 py-1 rounded-full text-sm font-medium ${color}`}>
-      {status?.toUpperCase()}
+    <span
+      className={`px-4 py-1 rounded-full text-sm font-medium ${color}`}
+    >
+      {status?.toUpperCase() || "UNKNOWN"}
     </span>
   );
 }
