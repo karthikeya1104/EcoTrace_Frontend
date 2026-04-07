@@ -292,6 +292,12 @@ function LabReport({ lab, validation }) {
 
   return (
     <div className="space-y-6">
+
+      <div className="bg-gray-50 p-5 rounded-xl">
+        <p className="text-sm text-gray-500">Lab Reporter Name</p>
+        <p className="font-semibold">{lab.lab_name || "Unknown"}</p>
+      </div>
+
       {lab.analysis?.map((a, i) => (
         <details key={i} className="bg-gray-50 p-5 rounded-xl">
           <summary className="font-medium cursor-pointer">
@@ -342,20 +348,30 @@ function Transport({ transports }) {
     <div className="space-y-6">
       {transports.map(t => (
         <div key={t.id} className="bg-gray-50 p-5 rounded-xl">
+
+          {/* ✅ ADD THIS */}
+          <p className="text-sm font-medium text-gray-700">
+            Transporter: {t.transporter_name || "Unknown"}
+          </p>
+
           <p className="font-semibold">
             {t.origin} → {t.destination}
           </p>
+
           <p className="text-sm text-gray-600">
             {t.distance_km} km • {t.vehicle_type} • {t.fuel_type}
           </p>
+
           <p className="text-sm text-gray-600">
             Emission: {t.transport_emission} kg CO₂
           </p>
+
           {t.notes && (
             <p className="text-sm text-gray-600 mt-2">
               Notes: {t.notes}
             </p>
           )}
+
           <p className="text-xs text-gray-400 mt-2">
             Logged: {formatDate(t.created_at)}
           </p>

@@ -64,6 +64,9 @@ export default function AdminBatchDetail() {
           <p className="text-yellow-600">No lab report available</p>
         ) : (
           <>
+            {/* ✅ LAB NAME */}
+            <Row label="Reported By" value={lab.lab_name} />
+
             <Row label="Score" value={lab.lab_score} />
             <Row
               label="Status"
@@ -103,8 +106,9 @@ export default function AdminBatchDetail() {
             {!lab.verified && (
               <div className="flex gap-4 mt-6">
                 <button
-                  onClick={() => api.post(`/admin/reports/${lab.id}/verify`)
-                    .then(() => navigate("/admin/reports"))
+                  onClick={() =>
+                    api.post(`/admin/reports/${lab.id}/verify`)
+                      .then(() => navigate("/admin/reports"))
                   }
                   className="bg-green-600 text-white px-4 py-2 rounded-xl"
                 >
@@ -112,8 +116,9 @@ export default function AdminBatchDetail() {
                 </button>
 
                 <button
-                  onClick={() => api.post(`/admin/reports/${lab.id}/reject`)
-                    .then(() => navigate("/admin/reports"))
+                  onClick={() =>
+                    api.post(`/admin/reports/${lab.id}/reject`)
+                      .then(() => navigate("/admin/reports"))
                   }
                   className="bg-red-500 text-white px-4 py-2 rounded-xl"
                 >
