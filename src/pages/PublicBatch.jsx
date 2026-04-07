@@ -55,6 +55,10 @@ export default function PublicBatch() {
                 {data.product.brand} • {data.product.category}
               </p>
 
+              <p className="mt-2 text-sm text-gray-600">
+                Manufactured by <span className="font-semibold">{data.batch.manufacturer_name}</span>
+              </p>
+
               {data.product.description && (
                 <p className="mt-4 text-gray-600 whitespace-pre-line">
                   {data.product.description}
