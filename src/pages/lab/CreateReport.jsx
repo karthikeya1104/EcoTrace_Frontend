@@ -12,7 +12,7 @@ export default function CreateReport() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  // 🔥 Dynamic Analysis Sections
+  //  Dynamic Analysis Sections
   const [analysisSections, setAnalysisSections] = useState([
     { title: "", content: "" }
   ]);
@@ -142,7 +142,7 @@ export default function CreateReport() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
 
-          {/* 🔥 Dynamic Sections */}
+          {/*  Dynamic Sections */}
           <div>
             <h3 className="text-sm font-medium text-gray-700 mb-3">
               Analysis Sections

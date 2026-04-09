@@ -134,7 +134,7 @@ export default function ReviewSection({ batchId, productId, batchStatus, navigat
       {mode === "batch" && isConsumer && (
         <WriteReview
           batchId={batchId}
-          batchStatus={batchStatus}   // ✅ PASS HERE
+          batchStatus={batchStatus}   //  PASS HERE
           onSuccess={() => {
             setPage(1);
             fetchReviews(1).then(d => setReviews(d.items));

@@ -64,7 +64,7 @@ export default function AdminBatchDetail() {
           <p className="text-yellow-600">No lab report available</p>
         ) : (
           <>
-            {/* ✅ LAB NAME */}
+            {/*  LAB NAME */}
             <Row label="Reported By" value={lab.lab_name} />
 
             <Row label="Score" value={lab.lab_score} />

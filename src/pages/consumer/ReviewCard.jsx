@@ -56,7 +56,7 @@ const ReviewCard = React.forwardRef(({ review, isMine }, ref) => {
           {review.user?.name || "Anonymous"}
         </p>
 
-        {/* 🔥 Highlight Badge */}
+        {/*  Highlight Badge */}
         {isMine && (
           <span className="text-xs bg-blue-600 text-white px-2 py-0.5 rounded-full">
             You

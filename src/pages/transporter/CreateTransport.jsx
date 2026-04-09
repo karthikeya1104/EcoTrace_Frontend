@@ -217,7 +217,7 @@ export default function CreateTransport() {
               Scan Batch QR
             </h2>
 
-            {/* 🔁 TOGGLE BUTTON */}
+            {/*  TOGGLE BUTTON */}
             <button
               onClick={scanning ? stopScanner : startScanner}
               className={`px-6 py-2 text-white rounded-xl transition ${

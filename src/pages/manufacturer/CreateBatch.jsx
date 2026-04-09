@@ -22,6 +22,40 @@ export default function CreateBatch() {
   const [qrImage, setQrImage] = useState(null);
   const [qrLoading, setQrLoading] = useState(false);
 
+
+  // =========================
+  // Load Previous Materials
+  // =========================
+  useEffect(() => {
+    if (!productId) return;
+
+    async function fetchPreviousMaterials() {
+      try {
+        const res = await axios.get(
+          `/api/batches/product/${productId}/latest-materials`
+        );
+
+        const materials = res.data?.materials;
+
+        if (materials && materials.length > 0) {
+          setForm(prev => ({
+            ...prev,
+            materials: materials.map(m => ({
+              name: m.material_name || "",
+              percentage: m.percentage ?? "",
+              source: m.source || ""
+            }))
+          }));
+        }
+
+      } catch (err) {
+        console.error("Failed to fetch previous materials", err);
+      }
+    }
+
+    fetchPreviousMaterials();
+  }, [productId]);
+
   // =========================
   // Basic Input Change
   // =========================
@@ -47,7 +81,15 @@ export default function CreateBatch() {
 
   const updateMaterial = (index, field, value) => {
     const updated = [...form.materials];
-    updated[index][field] = value;
+
+    //  only change: prevent negative % typing
+    if (field === "percentage") {
+      if (value === "" || Number(value) >= 0) {
+        updated[index][field] = value;
+      }
+    } else {
+      updated[index][field] = value;
+    }
 
     setForm(prev => ({
       ...prev,
@@ -78,10 +120,22 @@ export default function CreateBatch() {
     if (isNaN(carbon) || carbon < 0)
       return "Base carbon footprint must be a positive number.";
 
+    let total = 0;
+
     for (let mat of form.materials) {
       if (!mat.name.trim()) return "Material name is required.";
-      if (Number(mat.percentage) < 0 || Number(mat.percentage) > 100)
+
+      const percent = Number(mat.percentage);
+
+      if (isNaN(percent) || percent < 0 || percent > 100)
         return "Material percentage must be between 0 and 100.";
+
+      total += percent;
+    }
+
+    //  enforce total = 100 (with float tolerance)
+    if (Math.abs(total - 100) > 0.001) {
+      return `Total material percentage must equal 100%. Current: ${total.toFixed(3)}%`;
     }
 
     return null;
@@ -221,11 +275,11 @@ export default function CreateBatch() {
                 />
 
                 <Input
-                  label="Base Carbon Footprint (kg CO₂)"
+                  label="Base Carbon Footprint (kg CO₂ per unit)"
                   name="base_carbon_footprint"
                   type="number"
                   min="0"
-                  step="0.01"
+                  step="0.0001"
                   value={form.base_carbon_footprint}
                   onChange={handleChange}
                 />
@@ -260,6 +314,7 @@ export default function CreateBatch() {
                               type="number"
                               min="0"
                               max="100"
+                              step="0.0001"
                               value={mat.percentage}
                               onChange={(e) =>
                                 updateMaterial(index, "percentage", e.target.value)

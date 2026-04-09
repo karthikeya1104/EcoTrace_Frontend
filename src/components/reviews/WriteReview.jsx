@@ -86,7 +86,7 @@ export default function WriteReview({ batchId, batchStatus, onSuccess }) {
         <p className="text-red-500 text-sm mb-2">{error}</p>
       )}
 
-      {/* 🚀 Submit */}
+      {/* Submit */}
       <button
         onClick={submit}
         disabled={loading || isDisabled}

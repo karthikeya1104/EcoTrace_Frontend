@@ -353,7 +353,7 @@ function Transport({ transports }) {
       {transports.map(t => (
         <div key={t.id} className="bg-gray-50 p-5 rounded-xl">
 
-          {/* ✅ ADD THIS */}
+          {/*  ADD THIS */}
           <p className="text-sm font-medium text-gray-700">
             Transporter: {t.transporter_name || "Unknown"}
           </p>

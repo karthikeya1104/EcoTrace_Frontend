@@ -27,7 +27,7 @@ export default function BatchReviewSection({ batchId, batchStatus }) {
       const res = await api.get(`/api/reviews/batch/${batchId}`);
       const items = res.data.items || [];
 
-      // ✅ Separate my review safely
+      //  Separate my review safely
       const mine = items.find(r => r.is_mine === true);
       const others = items.filter(r => !r.is_mine);
 
@@ -74,7 +74,7 @@ export default function BatchReviewSection({ batchId, batchStatus }) {
         Batch Reviews ({reviews.length + (myReview ? 1 : 0)})
       </h2>
 
-      {/* 🔥 MY REVIEW */}
+      {/*  MY REVIEW */}
       {isConsumer && myReview && (
         <div className="mb-6 border border-blue-200 bg-blue-50 rounded-xl p-4">
 
@@ -114,7 +114,7 @@ export default function BatchReviewSection({ batchId, batchStatus }) {
         </div>
       )}
 
-      {/* 🔥 WRITE NEW REVIEW */}
+      {/*  WRITE NEW REVIEW */}
       {isConsumer && !myReview && (
         <div className="mb-6">
           <WriteReview
